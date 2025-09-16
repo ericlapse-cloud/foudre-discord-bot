@@ -208,7 +208,7 @@ $_POST = sanitizeInput($_POST);
 $_POST['category'] = $categoryBackup;
 
 // Validation des champs obligatoires
-$required = ['author', 'category', 'date', 'hour', 'minute', 'gps', 'description'];
+$required = ['author', 'category', 'date', 'time', 'gps', 'description'];
 foreach ($required as $field) {
     if (empty($_POST[$field])) {
         error_log("Discord Bot - Champ obligatoire manquant: $field");
@@ -343,13 +343,21 @@ if (!DateTime::createFromFormat('Y-m-d', $_POST['date'])) {
     exit;
 }
 
-// Validation heure/minute
-$hour = intval($_POST['hour']);
-$minute = intval($_POST['minute']);
-if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59) {
-    echo json_encode(['success' => false, 'message' => 'Heure ou minute invalide']);
+// Validation de l'heure format HH:MM
+$time = trim($_POST['time'] ?? '');
+if (empty($time)) {
+    echo json_encode(['success' => false, 'message' => 'Heure obligatoire']);
     exit;
 }
+
+if (!preg_match('/^([01]?[0-9]|2[0-3]):([0-5][0-9])$/', $time)) {
+    echo json_encode(['success' => false, 'message' => 'Format heure invalide (HH:MM)']);
+    exit;
+}
+
+list($hour, $minute) = explode(':', $time);
+$hour = intval($hour);
+$minute = intval($minute);
 
 // ✅ VALIDATION DONNÉES DE FOUDRE (NOUVEAU CHAMP TEXTUEL)
 $donneesFoudre = trim($_POST['donnees_foudre'] ?? '');
@@ -475,6 +483,7 @@ $newPoint = [
     'video_link' => $videoLink,
     'category' => $_POST['category'],
     'date' => $_POST['date'],
+    'time' => $time,
     'hour' => str_pad($hour, 2, '0', STR_PAD_LEFT),
     'minute' => str_pad($minute, 2, '0', STR_PAD_LEFT),
     'lat' => $lat,

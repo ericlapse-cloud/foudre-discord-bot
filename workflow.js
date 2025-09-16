@@ -51,20 +51,20 @@ const WORKFLOW_STEPS = {
         type: 'date', 
         title: '📅 Date d\'observation',
         prompt: 'À quelle date avez-vous observé cet impact ?', 
-        description: 'Indiquez la date exacte où vous avez découvert ou photographié cet impact. Si vous n\'êtes pas certain de la date exacte, indiquez une estimation proche.',
-        placeholder: 'Sélection interactive avec boutons',
+        description: 'Tapez la date au format AAAA-MM-JJ uniquement.',
+        placeholder: 'Ex: 2024-09-16',
         required: true,
-        validation: 'Date sélectionnée via interface'
+        validation: 'Format AAAA-MM-JJ uniquement'
     },
     5: { 
         field: 'time', 
         type: 'time', 
         title: '⏰ Heure d\'observation',
         prompt: 'À quelle heure avez-vous fait cette observation ?', 
-        description: 'Si vous connaissez l\'heure approximative de l\'impact ou de votre découverte, indiquez-la. Sinon, estimez au mieux.',
-        placeholder: 'Sélection par menus déroulants',
+        description: 'Tapez l\'heure au format HH:MM uniquement.',
+        placeholder: 'Ex: 14:30',
         required: true,
-        validation: 'Heure et minute via interface'
+        validation: 'Format HH:MM uniquement'
     },
     6: { 
         field: 'gps', 
@@ -101,7 +101,7 @@ const WORKFLOW_STEPS = {
         type: 'text', 
         title: '⚡ Données de foudre (optionnel)',
         prompt: 'Avez-vous des données spécifiques sur cette foudre ?', 
-        description: 'Indiquez toutes les informations techniques que vous avez : intensité estimée, polarité, du cou pde foudre.',
+        description: 'Indiquez toutes les informations techniques que vous avez : intensité estimée, polarité, du coup de foudre.',
         placeholder:  'Ex: "Négatif, intensité ~30kA"',
         required: false,
         validation: '10 à 50 caractères'
@@ -175,195 +175,118 @@ const CATEGORIES = [
     { label: 'Impact sur Infrastructure Électrique', emoji: '🔌', description: 'Lignes électriques, transformateurs' }
 ];
 
-// 🗓️ INTERFACE DE SÉLECTION DE DATE COMPLÈTE
-function createDateSelector(currentYear = null, currentMonth = null, currentDay = null) {
-    const today = new Date();
-    const selectedYear = currentYear || today.getFullYear();
-    const selectedMonth = currentMonth || (today.getMonth() + 1);
-    const selectedDay = currentDay || today.getDate();
-    
+// ✅ Interface de saisie de date (JJ/MM/AAAA uniquement)
+function createDateSelector() {
     const embed = new EmbedBuilder()
-        .setTitle('📅 Sélection de date complète')
-        .setDescription('**Choisissez l\'année, le mois et le jour**')
-        .setColor(0x3498db);
+        .setTitle('📅 Saisie de la date d\'observation')
+        .setDescription('**Tapez la date au format :** `AAAA-MM-JJ`\n\n**Exemple valide :**\n• `2024-09-16`')
+        .setColor(0x3498db)
+        .addFields(
+            { name: '✅ Validation', value: 'Format AAAA-MM-JJ uniquement\nDate entre 2000 et 2030', inline: false }
+        );
 
-    if (currentYear && currentMonth && currentDay) {
-        const dateStr = new Date(currentYear, currentMonth - 1, currentDay).toLocaleDateString('fr-FR', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
-        embed.addFields({ 
-            name: '📝 Date sélectionnée', 
-            value: dateStr,
-            inline: false 
-        });
-    }
-
-    // ✅ CORRECTION : Menu années
-    const yearMenu = new StringSelectMenuBuilder()
-        .setCustomId('date_year_select')
-        .setPlaceholder('📅 Sélectionnez l\'année');
-
-    const yearOptions = [];
-    for (let year = 2030; year >= 2000; year--) {
-        yearOptions.push({
-            label: year.toString(),
-            value: year.toString(),
-            default: year === selectedYear
-        });
-    }
-    yearMenu.addOptions(yearOptions); // ✅ Une seule fois, avec tout le tableau
-
-    // Menu mois complet (déjà correct)
-    const monthMenu = new StringSelectMenuBuilder()
-        .setCustomId('date_month_select')
-        .setPlaceholder('📆 Sélectionnez le mois')
-        .addOptions([
-            { label: '01 - Janvier', value: '1' },
-            { label: '02 - Février', value: '2' },
-            { label: '03 - Mars', value: '3' },
-            { label: '04 - Avril', value: '4' },
-            { label: '05 - Mai', value: '5' },
-            { label: '06 - Juin', value: '6' },
-            { label: '07 - Juillet', value: '7' },
-            { label: '08 - Août', value: '8' },
-            { label: '09 - Septembre', value: '9' },
-            { label: '10 - Octobre', value: '10' },
-            { label: '11 - Novembre', value: '11' },
-            { label: '12 - Décembre', value: '12' }
-        ]);
-
-    // ✅ CORRECTION : Menu jours
-    const dayMenu = new StringSelectMenuBuilder()
-        .setCustomId('date_day_select')
-        .setPlaceholder('📋 Sélectionnez le jour');
-
-    const dayOptions = [];
-    for (let day = 1; day <= 31; day++) {
-        const dayStr = day.toString().padStart(2, '0');
-        dayOptions.push({
-            label: dayStr,
-            value: day.toString(),
-            default: day === selectedDay
-        });
-    }
-    dayMenu.addOptions(dayOptions); // ✅ Une seule fois, avec tout le tableau
-
-    // ✅ AJOUT : Return statement complet
-    const confirmRow = new ActionRowBuilder()
+    const navigationRow = new ActionRowBuilder()
         .addComponents(
-            new ButtonBuilder()
-                .setCustomId('date_confirm')
-                .setLabel('✅ Confirmer cette date')
-                .setStyle(ButtonStyle.Success)
-                .setDisabled(!(currentYear && currentMonth && currentDay)),
             new ButtonBuilder()
                 .setCustomId('prev_3')
                 .setLabel('◀️ Précédent')
-                .setStyle(ButtonStyle.Secondary)
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('next_5')
+                .setLabel('Suivant ▶️')
+                .setStyle(ButtonStyle.Success)
         );
 
     return {
         embeds: [embed],
-        components: [
-            new ActionRowBuilder().addComponents(yearMenu),
-            new ActionRowBuilder().addComponents(monthMenu),
-            new ActionRowBuilder().addComponents(dayMenu),
-            confirmRow
-        ]
+        components: [navigationRow]
     };
 }
 
-    const confirmRow = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId('date_confirm')
-                .setLabel('✅ Confirmer cette date')
-                .setStyle(ButtonStyle.Success)
-                .setDisabled(!(currentYear && currentMonth && currentDay)),
-            new ButtonBuilder()
-                .setCustomId('prev_3')
-                .setLabel('◀️ Précédent')
-                .setStyle(ButtonStyle.Secondary)
+// ✅ Interface de saisie d'heure (HH:MM uniquement)
+function createTimeSelector() {
+    const embed = new EmbedBuilder()
+        .setTitle('⏰ Saisie de l\'heure d\'observation')
+        .setDescription('**Tapez l\'heure au format :** `HH:MM`\n\n**Exemples valides :**\n• `14:30`\n• `08:15`\n• `23:45`')
+        .setColor(0x9b59b6)
+        .addFields(
+            { name: '✅ Validation', value: 'Format HH:MM uniquement\nFormat 24h (00:00 à 23:59)', inline: false }
         );
 
-    return {
-        embeds: [embed],
-        components: [
-            new ActionRowBuilder().addComponents(yearMenu),
-            new ActionRowBuilder().addComponents(monthMenu),
-            new ActionRowBuilder().addComponents(dayMenu),
-            confirmRow
-        ]
-    };
-}
-
-// 🕐 SÉLECTEUR D'HEURE/MINUTE COMPLET
-function createTimeSelector(currentHour = null, currentMinute = null) {
-    const embed = new EmbedBuilder()
-        .setTitle('⏰ Sélection de l\'heure complète')
-        .setDescription('Choisissez l\'heure et les minutes')
-        .setColor(0x9b59b6);
-
-    if (currentHour !== null && currentMinute !== null) {
-        embed.addFields({ 
-            name: '🕐 Heure sélectionnée', 
-            value: `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`, 
-            inline: true 
-        });
-    }
-
-    // Menu heures complet (0-23)
-    const hourMenu = new StringSelectMenuBuilder()
-        .setCustomId('time_hour_select')
-        .setPlaceholder('🕐 Sélectionnez l\'heure (0-23)');
-
-    for (let hour = 0; hour < 24; hour++) {
-        const hourStr = hour.toString().padStart(2, '0');
-        hourMenu.addOptions([{
-            label: `${hourStr}h`,
-            value: hour.toString(),
-            default: hour === currentHour
-        }]);
-    }
-
-    // Menu minutes complet (0-59)
-    const minuteMenu = new StringSelectMenuBuilder()
-        .setCustomId('time_minute_select')
-        .setPlaceholder('⏱️ Sélectionnez les minutes (0-59)');
-
-    for (let minute = 0; minute < 60; minute++) {
-        const minuteStr = minute.toString().padStart(2, '0');
-        minuteMenu.addOptions([{
-            label: `${minuteStr}min`,
-            value: minute.toString(),
-            default: minute === currentMinute
-        }]);
-    }
-
-    const confirmRow = new ActionRowBuilder()
+    const navigationRow = new ActionRowBuilder()
         .addComponents(
-            new ButtonBuilder()
-                .setCustomId('time_confirm')
-                .setLabel('✅ Confirmer l\'heure')
-                .setStyle(ButtonStyle.Success)
-                .setDisabled(currentHour === null || currentMinute === null),
             new ButtonBuilder()
                 .setCustomId('prev_4')
                 .setLabel('◀️ Précédent')
-                .setStyle(ButtonStyle.Secondary)
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('next_6')
+                .setLabel('Suivant ▶️')
+                .setStyle(ButtonStyle.Success)
         );
 
     return {
         embeds: [embed],
-        components: [
-            new ActionRowBuilder().addComponents(hourMenu),
-            new ActionRowBuilder().addComponents(minuteMenu),
-            confirmRow
-        ]
+        components: [navigationRow]
     };
+}
+
+// ✅ Validation de date (JJ/MM/AAAA uniquement)
+function parseDateInput(input) {
+    // Format JJ/MM/AAAA uniquement
+    const match = input.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (match) {
+        const [, year, month, day] = match.map(Number);
+        return validateDateParts(year, month, day);
+    }
+    
+    return { valid: false, error: 'Format de date incorrect. Utilisez AAAA-MM-JJ (ex: 2024-09-16)' };
+}
+
+function validateDateParts(year, month, day) {
+    if (year < 2000 || year > 2030) {
+        return { valid: false, error: 'Année doit être entre 2000 et 2030' };
+    }
+    
+    if (month < 1 || month > 12) {
+        return { valid: false, error: 'Mois doit être entre 1 et 12' };
+    }
+    
+    if (day < 1 || day > 31) {
+        return { valid: false, error: 'Jour doit être entre 1 et 31' };
+    }
+    
+    // Validation de la date réelle
+    const date = new Date(year, month - 1, day);
+    if (date.getDate() !== day || date.getMonth() !== month - 1 || date.getFullYear() !== year) {
+        return { valid: false, error: 'Date invalide (ex: 31 février n\'existe pas)' };
+    }
+    
+    return { valid: true, year, month, day };
+}
+
+// ✅ Validation d'heure (HH:MM uniquement)
+function parseTimeInput(input) {
+    // Format HH:MM uniquement
+    const match = input.match(/^(\d{1,2}):(\d{1,2})$/);
+    if (match) {
+        const [, hour, minute] = match.map(Number);
+        return validateTimeParts(hour, minute);
+    }
+    
+    return { valid: false, error: 'Format d\'heure incorrect. Utilisez HH:MM (ex: 14:30)' };
+}
+
+function validateTimeParts(hour, minute) {
+    if (hour < 0 || hour > 23) {
+        return { valid: false, error: 'Heure doit être entre 0 et 23' };
+    }
+    
+    if (minute < 0 || minute > 59) {
+        return { valid: false, error: 'Minutes doivent être entre 0 et 59' };
+    }
+    
+    return { valid: true, hour, minute };
 }
 
 // ⚡ SÉLECTEUR DE PHÉNOMÈNES PARTICULIERS
@@ -492,11 +415,10 @@ async function createFinalSummary(session) {
     // Date et heure
     let dateTimeStr = '';
     if (data.date) {
-        const dateObj = new Date(data.date);
-        dateTimeStr = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        dateTimeStr = data.date;
     }
-    if (data.hour && data.minute) {
-        dateTimeStr += ` à ${data.hour}:${data.minute}`;
+    if (data.time) {
+        dateTimeStr += ` à ${data.time}`;
     }
     if (dateTimeStr) embed.addFields({ name: '📅 Date et heure', value: dateTimeStr, inline: true });
 
@@ -645,22 +567,6 @@ async function handleInteraction(interaction) {
         });
     }
     
-    // Gestion des interactions de date
-    if (interaction.customId && (
-        interaction.customId.startsWith('date_') || 
-        interaction.customId.startsWith('select_date_') ||
-        interaction.customId === 'back_to_date_selector'
-    )) {
-        await handleDateInteraction(interaction, session);
-        return;
-    }
-    
-    // Gestion des interactions de temps
-    if (interaction.customId && interaction.customId.startsWith('time_')) {
-        await handleTimeInteraction(interaction, session);
-        return;
-    }
-    
     // Gestion des phénomènes particuliers
     if (interaction.customId && (
         interaction.customId.startsWith('phenomena_') ||
@@ -692,109 +598,6 @@ async function handleInteraction(interaction) {
         await handleButtonClick(interaction, session);
     } else if (interaction.isStringSelectMenu()) {
         await handleMenuSelection(interaction, session);
-    }
-}
-
-// Gestion des interactions de date complète
-async function handleDateInteraction(interaction, session) {
-    const customId = interaction.customId;
-    
-    if (customId === 'date_year_select') {
-        const selectedYear = parseInt(interaction.values[0]); // ✅ CORRECTION: [0]
-        session.tempDate = { ...session.tempDate, year: selectedYear };
-        
-        const dateSelector = createDateSelector(
-            session.tempDate.year, 
-            session.tempDate.month, 
-            session.tempDate.day
-        );
-        await interaction.update(dateSelector);
-    }
-    else if (customId === 'date_month_select') {
-        const selectedMonth = parseInt(interaction.values[0]); // ✅ CORRECTION: [0]
-        session.tempDate = { ...session.tempDate, month: selectedMonth };
-        
-        const dateSelector = createDateSelector(
-            session.tempDate.year, 
-            session.tempDate.month, 
-            session.tempDate.day
-        );
-        await interaction.update(dateSelector);
-    }
-    else if (customId === 'date_day_select') {
-        const selectedDay = parseInt(interaction.values[0]); // ✅ CORRECTION: [0]
-        session.tempDate = { ...session.tempDate, day: selectedDay };
-        
-        const dateSelector = createDateSelector(
-            session.tempDate.year, 
-            session.tempDate.month, 
-            session.tempDate.day
-        );
-        await interaction.update(dateSelector);
-    }
-    else if (customId === 'date_confirm') {
-        if (session.tempDate && session.tempDate.year && session.tempDate.month && session.tempDate.day) {
-            // Validation de la date
-            const date = new Date(session.tempDate.year, session.tempDate.month - 1, session.tempDate.day);
-            if (date.getDate() === session.tempDate.day && 
-                date.getMonth() === session.tempDate.month - 1 && 
-                date.getFullYear() === session.tempDate.year) {
-                
-                session.data.date = `${session.tempDate.year}-${session.tempDate.month.toString().padStart(2, '0')}-${session.tempDate.day.toString().padStart(2, '0')}`;
-                session.step = 5;
-                
-                const timeSelector = createTimeSelector();
-                await interaction.update(timeSelector);
-            } else {
-                await interaction.reply({ 
-                    content: '❌ Date invalide. Veuillez vérifier le jour du mois.', 
-                    flags: MessageFlags.Ephemeral 
-                });
-            }
-        }
-    }
-    else if (customId === 'prev_3') {
-        session.step = 3;
-        await updateStepMessage(interaction, session);
-    }
-}
-
-// Gestion des interactions de temps
-async function handleTimeInteraction(interaction, session) {
-    const customId = interaction.customId;
-    
-    if (customId === 'time_hour_select') {
-        const selectedHour = parseInt(interaction.values[0]);
-        session.tempTime = { ...session.tempTime, hour: selectedHour };
-        
-        const timeSelector = createTimeSelector(session.tempTime.hour, session.tempTime.minute);
-        await interaction.update(timeSelector);
-    }
-    else if (customId === 'time_minute_select') {
-        const selectedMinute = parseInt(interaction.values[0]);
-        session.tempTime = { ...session.tempTime, minute: selectedMinute };
-        
-        const timeSelector = createTimeSelector(session.tempTime.hour, session.tempTime.minute);
-        await interaction.update(timeSelector);
-    }
-    else if (customId === 'time_quick_select') {
-        const timeValue = interaction.values[0];
-        const [hour, minute] = timeValue.split(':').map(Number);
-        
-        session.data.hour = hour.toString().padStart(2, '0');
-        session.data.minute = minute.toString().padStart(2, '0');
-        session.step = 6;
-        
-        await updateStepMessage(interaction, session);
-    }
-    else if (customId === 'time_confirm') {
-        if (session.tempTime && session.tempTime.hour !== null && session.tempTime.minute !== null) {
-            session.data.hour = session.tempTime.hour.toString().padStart(2, '0');
-            session.data.minute = session.tempTime.minute.toString().padStart(2, '0');
-            session.step = 6;
-            
-            await updateStepMessage(interaction, session);
-        }
     }
 }
 
@@ -882,14 +685,14 @@ async function handleSummaryInteraction(interaction, session) {
     }
 }
 
-// ✅ NAVIGATION SIMPLIFIÉE - PAS DE BOUTON PASSER
+// ✅ NAVIGATION SIMPLIFIÉE
 async function handleButtonClick(interaction, session) {
     const [action, stepStr] = interaction.customId.split('_');
     const targetStep = parseInt(stepStr);
     
     switch (action) {
         case 'next':
-            // ✅ NOUVELLE LOGIQUE : Vérifier seulement si étape obligatoire
+            // Vérifier si étape obligatoire
             const currentStep = WORKFLOW_STEPS[session.step];
             
             if (currentStep.required && !session.data[currentStep.field]) {
@@ -899,7 +702,6 @@ async function handleButtonClick(interaction, session) {
                 });
             }
             
-            // Passer à l'étape suivante
             session.step = targetStep;
             await updateStepMessage(interaction, session);
             break;
@@ -982,7 +784,6 @@ async function processStepInput(message, stepConfig) {
                 }
                 return { valid: true, data: { [stepConfig.field]: content } };
             }
-            // ✅ AJOUTÉ : Validation pour données de foudre
             else if (stepConfig.field === 'donnees_foudre') {
                 if (content.toLowerCase() === 'non' && !stepConfig.required) {
                     return { valid: true }; // Passer l'étape
@@ -1005,6 +806,34 @@ async function processStepInput(message, stepConfig) {
                 return { valid: false, error: 'Coordonnées GPS hors limites mondiales.' };
             }
             return { valid: true, data: { gps: content, lat: lat, lng: lng } };
+
+        // ✅ Validation de date (JJ/MM/AAAA uniquement)
+        case 'date':
+            const dateResult = parseDateInput(content);
+            if (!dateResult.valid) {
+                return { valid: false, error: dateResult.error };
+            }
+            // Convertir en format AAAA-MM-JJ pour la base de données
+            const formattedDate = `${dateResult.year}-${dateResult.month.toString().padStart(2, '0')}-${dateResult.day.toString().padStart(2, '0')}`;
+            return { 
+                valid: true, 
+                data: { 
+                    date: formattedDate
+                } 
+            };
+
+        // ✅ Validation d'heure (HH:MM uniquement)
+        case 'time':
+            const timeResult = parseTimeInput(content);
+            if (!timeResult.valid) {
+                return { valid: false, error: timeResult.error };
+            }
+            return { 
+                valid: true, 
+                data: { 
+                    time: `${timeResult.hour.toString().padStart(2, '0')}:${timeResult.minute.toString().padStart(2, '0')}`
+                } 
+            };
             
         case 'file':
             return await handleFileInput(message, stepConfig);
@@ -1101,7 +930,6 @@ function createStepEmbed(stepNumber, session = null) {
     return embed;
 }
 
-// ✅ NAVIGATION BUTTONS SIMPLIFIÉE - PAS DE BOUTON PASSER
 function createNavigationButtons(stepNumber) {
     const components = [];
     
@@ -1139,14 +967,14 @@ function createNavigationButtons(stepNumber) {
         );
     }
     
-    // ✅ BOUTON SUIVANT TOUJOURS ACTIVÉ (pas de bouton Passer)
+    // Bouton Suivant
     if (stepNumber < 15) {
         navigationRow.addComponents(
             new ButtonBuilder()
                 .setCustomId(`next_${stepNumber + 1}`)
                 .setLabel('Suivant ▶️')
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(false) // ✅ TOUJOURS ACTIVÉ
+                .setDisabled(false)
         );
     }
     
@@ -1156,10 +984,10 @@ function createNavigationButtons(stepNumber) {
 
 async function updateStepMessage(interaction, session) {
     if (session.step === 4) {
-        const dateSelector = createDateSelector(session.data.date);
+        const dateSelector = createDateSelector();
         await interaction.update(dateSelector);
     } else if (session.step === 5) {
-        const timeSelector = createTimeSelector(session.data.hour, session.data.minute);
+        const timeSelector = createTimeSelector();
         await interaction.update(timeSelector);
     } else if (session.step === 13) {
         const phenomenaSelector = createPhenomenaSelector(session.tempPhenomena);
@@ -1183,7 +1011,7 @@ async function updateStepMessage(interaction, session) {
 
 async function sendUpdatedStep(message, session) {
     if (session.step === 4) {
-        const dateSelector = createDateSelector(session.data.date);
+        const dateSelector = createDateSelector();
         await message.reply(dateSelector);
     } else if (session.step === 5) {
         const timeSelector = createTimeSelector();
@@ -1251,7 +1079,7 @@ async function submitData(interaction, session) {
         }
         
         // Envoyer à votre API PHP
-        const apiEndpoint = process.env.API_ENDPOINT || 'https://fulgurzone.org/ajout_point.php';
+        const apiEndpoint = process.env.API_ENDPOINT || 'https://fulgurzone.org/discord_webhook.php';
         console.log('🌐 Envoi vers:', apiEndpoint);
         
         const response = await axios.post(apiEndpoint, formData, {

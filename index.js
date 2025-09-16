@@ -26,7 +26,7 @@ workflowHandler.setClient(client);
 const userTriggers = new Map();
 
 // Event: Bot prêt
-client.once('clientReady', async () => {
+client.once('ready', async () => {
     console.log(`✅ ${client.user.tag} est en ligne!`);
     
     // Enregistrer la commande slash
