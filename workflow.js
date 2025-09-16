@@ -165,16 +165,6 @@ const WORKFLOW_STEPS = {
     }
 };
 
-const CATEGORIES = [
-    { label: 'Impact au Sol', emoji: '🌍', description: 'Sol nu, terre, sable, roches de surface' },
-    { label: 'Impact sur Arbre / Végétation', emoji: '🌳', description: 'Arbres, buissons, végétation diverse' }, 
-    { label: 'Impact sur Bâtiment / Infrastructure', emoji: '🏠', description: 'Maisons, bâtiments, structures construites' },
-    { label: 'Impact sur surface Rocheuse', emoji: '🪨', description: 'Rochers, falaises, formations rocheuses' },
-    { label: 'Impact sur l\'Eau', emoji: '💧', description: 'Plans d\'eau, rivières, zones humides' },
-    { label: 'Impact sur Structure Métallique', emoji: '⚡', description: 'Pylônes, antennes, structures métal' },
-    { label: 'Impact sur Infrastructure Électrique', emoji: '🔌', description: 'Lignes électriques, transformateurs' }
-];
-
 // ✅ Interface de saisie de date (JJ/MM/AAAA uniquement)
 function createDateSelector() {
     const embed = new EmbedBuilder()
@@ -593,11 +583,9 @@ async function handleInteraction(interaction) {
         return;
     }
     
-    // Gestion standard des boutons et menus
+    // ✅ GESTION UNIQUEMENT DES BOUTONS (plus de SelectMenu)
     if (interaction.isButton()) {
         await handleButtonClick(interaction, session);
-    } else if (interaction.isStringSelectMenu()) {
-        await handleMenuSelection(interaction, session);
     }
 }
 
@@ -687,6 +675,29 @@ async function handleSummaryInteraction(interaction, session) {
 
 // ✅ NAVIGATION SIMPLIFIÉE
 async function handleButtonClick(interaction, session) {
+    const customId = interaction.customId;
+    
+    // ✅ GESTION DES CATÉGORIES
+    if (customId.startsWith('category_')) {
+        const categoryMap = {
+            'category_sol': 'Impact au Sol',
+            'category_arbre': 'Impact sur Arbre / Végétation', 
+            'category_batiment': 'Impact sur Bâtiment / Infrastructure',
+            'category_roche': 'Impact sur surface Rocheuse',
+            'category_eau': 'Impact sur l\'Eau',
+            'category_metal': 'Impact sur Structure Métallique',
+            'category_electrique': 'Impact sur Infrastructure Électrique'
+        };
+        
+        session.data.category = categoryMap[customId];
+        session.step = 4;
+        
+        const dateSelector = createDateSelector();
+        await interaction.update(dateSelector);
+        return;
+    }
+    
+    // Navigation standard
     const [action, stepStr] = interaction.customId.split('_');
     const targetStep = parseInt(stepStr);
     
@@ -710,16 +721,6 @@ async function handleButtonClick(interaction, session) {
             session.step = targetStep;
             await updateStepMessage(interaction, session);
             break;
-    }
-}
-
-async function handleMenuSelection(interaction, session) {
-    if (interaction.customId === 'category_select') {
-        session.data.category = interaction.values[0];
-        session.step = 4;
-        
-        const dateSelector = createDateSelector();
-        await interaction.update(dateSelector);
     }
 }
 
@@ -934,19 +935,44 @@ function createNavigationButtons(stepNumber) {
     const components = [];
     
     if (stepNumber === 3) {
-        const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId('category_select')
-            .setPlaceholder('🏷️ Choisissez une catégorie...')
-            .addOptions(
-                CATEGORIES.map((cat, index) => ({
-                    label: cat.label,
-                    description: cat.description,
-                    emoji: cat.emoji,
-                    value: cat.label
-                }))
+        // ✅ REMPLACER SelectMenu par ButtonBuilder
+        const categoryRow1 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('category_sol')
+                    .setLabel('🌍 Impact au Sol')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('category_arbre')
+                    .setLabel('🌳 Arbre / Végétation')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('category_batiment')
+                    .setLabel('🏠 Bâtiment')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('category_roche')
+                    .setLabel('🪨 Surface Rocheuse')
+                    .setStyle(ButtonStyle.Primary)
+            );
+
+        const categoryRow2 = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('category_eau')
+                    .setLabel('💧 Impact sur l\'Eau')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('category_metal')
+                    .setLabel('⚡ Structure Métallique')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('category_electrique')
+                    .setLabel('🔌 Infra Électrique')
+                    .setStyle(ButtonStyle.Primary)
             );
         
-        components.push(new ActionRowBuilder().addComponents(selectMenu));
+        components.push(categoryRow1, categoryRow2);
     }
     
     // Étapes avec interfaces spéciales
@@ -1048,9 +1074,16 @@ async function submitData(interaction, session) {
     try {
         const formData = new FormData();
         
-        // Ajouter les données texte
+        // ✅ NOUVEAU : Convertir time en hour/minute séparés
+        if (session.data.time) {
+            const [hour, minute] = session.data.time.split(':');
+            formData.append('hour', hour);
+            formData.append('minute', minute);
+        }
+        
+        // Ajouter les données texte (SAUF time qui est maintenant hour/minute)
         Object.keys(session.data).forEach(key => {
-            if (!['photo', 'photo_terrain', 'meteologix_photo', 'echo_radar'].includes(key)) {
+            if (!['photo', 'photo_terrain', 'meteologix_photo', 'echo_radar', 'time'].includes(key)) {
                 if (session.data[key] !== null && session.data[key] !== undefined) {
                     let value = session.data[key];
                     if (typeof value === 'boolean') {

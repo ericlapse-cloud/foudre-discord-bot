@@ -208,7 +208,14 @@ $_POST = sanitizeInput($_POST);
 $_POST['category'] = $categoryBackup;
 
 // Validation des champs obligatoires
-$required = ['author', 'category', 'date', 'time', 'gps', 'description'];
+$required = ['author', 'category', 'date', 'gps', 'description'];
+
+// Vérifier que hour ET minute sont présents OU que time est présent
+if (empty($_POST['time']) && (empty($_POST['hour']) || empty($_POST['minute']))) {
+    echo json_encode(['success' => false, 'message' => 'Heure obligatoire (time ou hour+minute)']);
+    exit;
+}
+
 foreach ($required as $field) {
     if (empty($_POST[$field])) {
         error_log("Discord Bot - Champ obligatoire manquant: $field");
@@ -343,21 +350,27 @@ if (!DateTime::createFromFormat('Y-m-d', $_POST['date'])) {
     exit;
 }
 
-// Validation de l'heure format HH:MM
-$time = trim($_POST['time'] ?? '');
-if (empty($time)) {
-    echo json_encode(['success' => false, 'message' => 'Heure obligatoire']);
-    exit;
+// ✅ GESTION DES DEUX FORMATS
+if (!empty($_POST['time'])) {
+    // Format unifié depuis Discord Bot V2
+    $time = trim($_POST['time']);
+    if (!preg_match('/^([01]?[0-9]|2[0-3]):([0-5][0-9])$/', $time)) {
+        echo json_encode(['success' => false, 'message' => 'Format heure invalide (HH:MM)']);
+        exit;
+    }
+    list($hour, $minute) = explode(':', $time);
+    $hour = intval($hour);
+    $minute = intval($minute);
+} else {
+    // Format séparé depuis formulaire HTML
+    $hour = intval($_POST['hour']);
+    $minute = intval($_POST['minute']);
+    if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59) {
+        echo json_encode(['success' => false, 'message' => 'Heure ou minute invalide']);
+        exit;
+    }
+    $time = sprintf('%02d:%02d', $hour, $minute);
 }
-
-if (!preg_match('/^([01]?[0-9]|2[0-3]):([0-5][0-9])$/', $time)) {
-    echo json_encode(['success' => false, 'message' => 'Format heure invalide (HH:MM)']);
-    exit;
-}
-
-list($hour, $minute) = explode(':', $time);
-$hour = intval($hour);
-$minute = intval($minute);
 
 // ✅ VALIDATION DONNÉES DE FOUDRE (NOUVEAU CHAMP TEXTUEL)
 $donneesFoudre = trim($_POST['donnees_foudre'] ?? '');
