@@ -201,20 +201,22 @@ function createDateSelector(currentYear = null, currentMonth = null, currentDay 
         });
     }
 
-    // Menu années (2000-2030)
+    // ✅ CORRECTION : Menu années
     const yearMenu = new StringSelectMenuBuilder()
         .setCustomId('date_year_select')
         .setPlaceholder('📅 Sélectionnez l\'année');
 
+    const yearOptions = [];
     for (let year = 2030; year >= 2000; year--) {
-        yearMenu.addOptions([{
+        yearOptions.push({
             label: year.toString(),
             value: year.toString(),
             default: year === selectedYear
-        }]);
+        });
     }
+    yearMenu.addOptions(yearOptions); // ✅ Une seule fois, avec tout le tableau
 
-    // Menu mois complet
+    // Menu mois complet (déjà correct)
     const monthMenu = new StringSelectMenuBuilder()
         .setCustomId('date_month_select')
         .setPlaceholder('📆 Sélectionnez le mois')
@@ -233,19 +235,46 @@ function createDateSelector(currentYear = null, currentMonth = null, currentDay 
             { label: '12 - Décembre', value: '12' }
         ]);
 
-    // Menu jours complet (1-31)
+    // ✅ CORRECTION : Menu jours
     const dayMenu = new StringSelectMenuBuilder()
         .setCustomId('date_day_select')
         .setPlaceholder('📋 Sélectionnez le jour');
 
+    const dayOptions = [];
     for (let day = 1; day <= 31; day++) {
         const dayStr = day.toString().padStart(2, '0');
-        dayMenu.addOptions([{
+        dayOptions.push({
             label: dayStr,
             value: day.toString(),
             default: day === selectedDay
-        }]);
+        });
     }
+    dayMenu.addOptions(dayOptions); // ✅ Une seule fois, avec tout le tableau
+
+    // ✅ AJOUT : Return statement complet
+    const confirmRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('date_confirm')
+                .setLabel('✅ Confirmer cette date')
+                .setStyle(ButtonStyle.Success)
+                .setDisabled(!(currentYear && currentMonth && currentDay)),
+            new ButtonBuilder()
+                .setCustomId('prev_3')
+                .setLabel('◀️ Précédent')
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+    return {
+        embeds: [embed],
+        components: [
+            new ActionRowBuilder().addComponents(yearMenu),
+            new ActionRowBuilder().addComponents(monthMenu),
+            new ActionRowBuilder().addComponents(dayMenu),
+            confirmRow
+        ]
+    };
+}
 
     const confirmRow = new ActionRowBuilder()
         .addComponents(
