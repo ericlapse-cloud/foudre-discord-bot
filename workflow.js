@@ -287,17 +287,18 @@ function validateTimeParts(hour, minute) {
     return { valid: true, hour, minute };
 }
 
-// ⚡ SÉLECTEUR DE PHÉNOMÈNES PARTICULIERS
+// ⚡ SÉLECTEUR DE PHÉNOMÈNES PARTICULIERS (VERSION BOUTONS)
 function createPhenomenaSelector(currentSelection = []) {
     const embed = new EmbedBuilder()
         .setTitle('⚡ Phénomènes particuliers observés')
-        .setDescription('Sélectionnez tous les phénomènes lumineux que vous avez observés lors de l\'impact')
+        .setDescription('Cliquez sur les phénomènes que vous avez observés lors de l\'impact')
         .setColor(0xe74c3c)
         .addFields(
             { name: '🌟 Power Flash', value: 'Éclair très intense et prolongé, souvent visible à grande distance', inline: false },
-            { name: '⬆️ Traceurs ascendants', value: 'Décharges électriques qui remontent du sol vers le nuage', inline: false },
+            { name: '⬆️ Traceurs ascendants', value: 'Décharges électriques qui remontent du sol vers le nuage', inline: false }
         );
 
+    // Afficher la sélection actuelle
     if (currentSelection.length > 0) {
         const selectedLabels = currentSelection.map(val => {
             switch(val) {
@@ -313,31 +314,22 @@ function createPhenomenaSelector(currentSelection = []) {
         });
     }
 
-    const phenomenaMenu = new StringSelectMenuBuilder()
-        .setCustomId('phenomena_select')
-        .setPlaceholder('🔍 Choisissez les phénomènes observés...')
-        .setMinValues(0)
-        .setMaxValues(4)
-        .addOptions([
-            {
-                label: 'Power Flash',
-                description: 'Éclair très intense et prolongé',
-                emoji: '💥',
-                value: 'power_flash'
-            },
-            {
-                label: 'Traceurs ascendants',
-                description: 'Décharges remontant du sol vers le nuage',
-                emoji: '⬆️',
-                value: 'traceurs_ascendants'
-            },
-            {
-                label: 'Aucun phénomène particulier',
-                description: 'Impact sans phénomène lumineux spécial',
-                emoji: '🚫',
-                value: 'aucun'
-            }
-        ]);
+    // ✅ REMPLACER StringSelectMenu par des BOUTONS
+    const phenomenaRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('phenomena_power_flash')
+                .setLabel('🌟 Power Flash')
+                .setStyle(currentSelection.includes('power_flash') ? ButtonStyle.Success : ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('phenomena_traceurs')
+                .setLabel('⬆️ Traceurs')
+                .setStyle(currentSelection.includes('traceurs_ascendants') ? ButtonStyle.Success : ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('phenomena_none')
+                .setLabel('🚫 Aucun')
+                .setStyle(ButtonStyle.Secondary)
+        );
 
     const confirmRow = new ActionRowBuilder()
         .addComponents(
@@ -357,10 +349,7 @@ function createPhenomenaSelector(currentSelection = []) {
 
     return {
         embeds: [embed],
-        components: [
-            new ActionRowBuilder().addComponents(phenomenaMenu),
-            confirmRow
-        ]
+        components: [phenomenaRow, confirmRow]
     };
 }
 
@@ -601,19 +590,44 @@ async function handleInteraction(interaction) {
 async function handlePhenomenaInteraction(interaction, session) {
     const customId = interaction.customId;
     
-    if (customId === 'phenomena_select') {
-        const selectedPhenomena = interaction.values;
-        session.tempPhenomena = selectedPhenomena;
+    // ✅ NOUVEAU: Gestion boutons individuels
+    if (customId === 'phenomena_power_flash') {
+        if (!session.tempPhenomena) session.tempPhenomena = [];
+        const index = session.tempPhenomena.indexOf('power_flash');
+        if (index > -1) {
+            session.tempPhenomena.splice(index, 1); // Retirer si déjà sélectionné
+        } else {
+            session.tempPhenomena.push('power_flash'); // Ajouter
+        }
         
-        const phenomenaSelector = createPhenomenaSelector(selectedPhenomena);
+        const phenomenaSelector = createPhenomenaSelector(session.tempPhenomena);
+        await interaction.update(phenomenaSelector);
+    }
+    else if (customId === 'phenomena_traceurs') {
+        if (!session.tempPhenomena) session.tempPhenomena = [];
+        const index = session.tempPhenomena.indexOf('traceurs_ascendants');
+        if (index > -1) {
+            session.tempPhenomena.splice(index, 1);
+        } else {
+            session.tempPhenomena.push('traceurs_ascendants');
+        }
+        
+        const phenomenaSelector = createPhenomenaSelector(session.tempPhenomena);
+        await interaction.update(phenomenaSelector);
+    }
+    else if (customId === 'phenomena_none') {
+        session.tempPhenomena = []; // Vider la sélection
+        
+        const phenomenaSelector = createPhenomenaSelector(session.tempPhenomena);
         await interaction.update(phenomenaSelector);
     }
     else if (customId === 'phenomena_confirm') {
         if (session.tempPhenomena) {
             session.data.power_flash = session.tempPhenomena.includes('power_flash');
             session.data.traceurs_ascendants = session.tempPhenomena.includes('traceurs_ascendants');
-            session.data.eclat_terminal = session.tempPhenomena.includes('eclat_terminal');
-            session.data.phenomene_colore = session.tempPhenomena.includes('phenomene_colore');
+        } else {
+            session.data.power_flash = false;
+            session.data.traceurs_ascendants = false;
         }
         
         session.step = 14;
@@ -622,8 +636,6 @@ async function handlePhenomenaInteraction(interaction, session) {
     else if (customId === 'phenomena_skip') {
         session.data.power_flash = false;
         session.data.traceurs_ascendants = false;
-        session.data.eclat_terminal = false;
-        session.data.phenomene_colore = false;
         
         session.step = 14;
         await updateStepMessage(interaction, session);
