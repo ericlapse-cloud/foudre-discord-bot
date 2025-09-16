@@ -1,0 +1,28 @@
+{
+  "name": "foudre-discord-bot",
+  "version": "1.0.0",
+  "description": "Bot Discord pour collecte d'observations d'impacts de foudre",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["discord", "bot", "foudre", "lightning", "weather"],
+  "author": "Votre nom",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.15.3",
+    "@discordjs/rest": "^2.3.0",
+    "discord-api-types": "^0.37.83",
+    "axios": "^1.7.2",
+    "form-data": "^4.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "engines": {
+    "node": ">=16.9.0"
+  }
+}
