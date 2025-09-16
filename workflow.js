@@ -424,10 +424,12 @@ async function createFinalSummary(session) {
     if (data.photo) {
         mediaCount++;
         mediaList.push('📸 Photo principale');
+        embed.setThumbnail(data.photo.url);
     }
     if (data.photo_terrain) {
         mediaCount++;
         mediaList.push('🌄 Photo terrain');
+        embed.setThumbnail(data.photo_terrain.url);
     }
     if (data.donnees_foudre) {
         embed.addFields({ 
@@ -439,6 +441,8 @@ async function createFinalSummary(session) {
     if (data.echo_radar) {
         mediaCount++;
         mediaList.push('📡 Écho radar');
+        if (!data.photo_terrain) {
+            embed.setThumbnail(data.echo_radar.url);
     }
     if (data.video_link) {
         mediaCount++;
