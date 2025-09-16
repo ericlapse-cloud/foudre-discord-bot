@@ -1,4 +1,4 @@
-// workflow.js
+// workflow.jsconst { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
 const axios = require('axios');
 const FormData = require('form-data');
@@ -298,7 +298,6 @@ function createPhenomenaSelector(currentSelection = []) {
             { name: '⬆️ Traceurs ascendants', value: 'Décharges électriques qui remontent du sol vers le nuage', inline: false }
         );
 
-    // Afficher la sélection actuelle
     if (currentSelection.length > 0) {
         const selectedLabels = currentSelection.map(val => {
             switch(val) {
@@ -314,7 +313,6 @@ function createPhenomenaSelector(currentSelection = []) {
         });
     }
 
-    // ✅ REMPLACER StringSelectMenu par des BOUTONS
     const phenomenaRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -335,11 +333,11 @@ function createPhenomenaSelector(currentSelection = []) {
         .addComponents(
             new ButtonBuilder()
                 .setCustomId('phenomena_confirm')
-                .setLabel('✅ Confirmer la sélection')
+                .setLabel('✅ Confirmer')
                 .setStyle(ButtonStyle.Success),
             new ButtonBuilder()
                 .setCustomId('phenomena_skip')
-                .setLabel('⏭️ Passer cette étape')
+                .setLabel('⏭️ Passer')
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
                 .setCustomId('prev_12')
