@@ -2,6 +2,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
 const axios = require('axios');
 const FormData = require('form-data');
+const validator = require('validator');
 
 // ✅ CONNEXION AVEC LE CLIENT PRINCIPAL
 let clientInstance = null;
@@ -13,6 +14,13 @@ function setClient(client) {
 
 function getUserSessions() {
     return clientInstance ? clientInstance.userSessions : new Map();
+}
+
+function sanitizeUserInput(input) {
+    if (typeof input !== 'string') return input;
+    
+    // ✅ Échapper HTML/JS
+    return validator.escape(input);
 }
 
 // 🎯 Configuration détaillée des étapes avec descriptions
@@ -769,7 +777,7 @@ async function handleStep(message) {
 }
 
 async function processStepInput(message, stepConfig) {
-    const content = message.content.trim();
+    const content = sanitizeUserInput(message.content.trim());
     
     switch (stepConfig.type) {
         case 'text':
